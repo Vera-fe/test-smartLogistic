@@ -1,10 +1,13 @@
 # Для запуска приложения: 
 1.Склонировать себе репозиторий с помощью команды:
 ``` git clone https://github.com/Vera-fe/test-smartLogistic.git test-smartLogistic ```
+
 2. Зайти в папку проекта:
 ``` cd test-smartLogistic ```
+
 3. Установить зависимости:
 ``` npm install ```
+
 4. Запустить локально:
 ``` npm run dev ```
 
