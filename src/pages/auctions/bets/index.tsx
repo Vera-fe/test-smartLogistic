@@ -17,7 +17,13 @@ const betSchema = z.object({
         .refine((val) => val > 0, 'Цена должна быть больше 0'),
 })
 
+// Тип для данных формы (price как строка)
 type BetFormData = z.infer<typeof betSchema>
+
+// Тип для данных отправки на сервер (price как число)
+type BetSubmitData = {
+    price: number
+}
 
 export function AuctionBetsPage() {
     const {auctionUuid} = useParams({from: '/auctions/$auctionUuid/bets'})
@@ -42,7 +48,7 @@ export function AuctionBetsPage() {
     })
 
     const placeBetMutation = useMutation({
-        mutationFn: async (data: BetFormData) => {
+        mutationFn: async (data: BetSubmitData) => {
             const response = await apiClient.post(`/auctions/${auctionUuid}/bets`, {
                 price: data.price,
             })
@@ -68,7 +74,11 @@ export function AuctionBetsPage() {
     })
 
     const onSubmit = (data: BetFormData) => {
-        placeBetMutation.mutate(data)
+        // Преобразуем данные формы в данные для отправки
+        const submitData: BetSubmitData = {
+            price: Number(data.price),
+        }
+        placeBetMutation.mutate(submitData)
     }
 
     if (betsData?.hideHistory) {
