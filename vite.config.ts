@@ -22,7 +22,4 @@ export default defineConfig(({mode}) => ({
         }
     ],
     base: mode === 'production' ? '/test-smartLogistic/' : '/',
-    build: {
-        outDir: 'docs',
-    },
 }))
