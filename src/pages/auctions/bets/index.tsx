@@ -1,36 +1,20 @@
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
-import {useParams, Link, useNavigate} from '@tanstack/react-router'
-import {useForm} from 'react-hook-form'
-import {zodResolver} from '@hookform/resolvers/zod'
-import {z} from 'zod'
-import {apiClient} from '../../../shared/api/client'
-import type {Bet, Auction} from '../../../shared/types/auction'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useParams, Link, useNavigate } from '@tanstack/react-router'
+import { useForm } from 'react-hook-form'
+import { apiClient } from '../../../shared/api/client'
+import type { Bet, Auction } from '../../../shared/types/auction'
 import toast from 'react-hot-toast'
 
-// Схема валидации для ставки с русскими сообщениями
-const betSchema = z.object({
-    price: z
-        .string()
-        .min(1, 'Введите цену')
-        .refine((val) => !isNaN(Number(val)), 'Введите число')
-        .transform(Number)
-        .refine((val) => val > 0, 'Цена должна быть больше 0'),
-})
-
-// Тип для данных формы (price как строка)
-type BetFormData = z.infer<typeof betSchema>
-
-// Тип для данных отправки на сервер (price как число)
-type BetSubmitData = {
-    price: number
+type BetFormData = {
+    price: string
 }
 
 export function AuctionBetsPage() {
-    const {auctionUuid} = useParams({from: '/auctions/$auctionUuid/bets'})
+    const { auctionUuid } = useParams({ from: '/auctions/$auctionUuid/bets' })
     const navigate = useNavigate()
     const queryClient = useQueryClient()
 
-    const {data: auction} = useQuery({
+    const { data: auction } = useQuery({
         queryKey: ['auction', auctionUuid],
         queryFn: async () => {
             const response = await apiClient.get<Auction>(`/auctions/${auctionUuid}`)
@@ -38,7 +22,7 @@ export function AuctionBetsPage() {
         },
     })
 
-    const {data: betsData, isLoading, error} = useQuery({
+    const { data: betsData, isLoading, error } = useQuery({
         queryKey: ['bets', auctionUuid],
         queryFn: async () => {
             const response = await apiClient.get(`/auctions/${auctionUuid}/bets`)
@@ -48,43 +32,77 @@ export function AuctionBetsPage() {
     })
 
     const placeBetMutation = useMutation({
-        mutationFn: async (data: BetSubmitData) => {
+        mutationFn: async (data: { price: number }) => {
             const response = await apiClient.post(`/auctions/${auctionUuid}/bets`, {
                 price: data.price,
             })
             return response.data
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ['auctions']})
-            queryClient.invalidateQueries({queryKey: ['auction', auctionUuid]})
-            queryClient.invalidateQueries({queryKey: ['bets', auctionUuid]})
+            queryClient.invalidateQueries({ queryKey: ['auctions'] })
+            queryClient.invalidateQueries({ queryKey: ['auction', auctionUuid] })
+            queryClient.invalidateQueries({ queryKey: ['bets', auctionUuid] })
             toast.success('Ставка успешно установлена!')
-            navigate({to: '/auctions/$auctionUuid', params: {auctionUuid}})
+            navigate({ to: '/auctions/$auctionUuid', params: { auctionUuid } })
         },
         onError: (error: Error) => {
             toast.error(error?.message || 'Ошибка при установке ставки')
         },
     })
 
-    const {register, handleSubmit, formState: {errors}} = useForm<BetFormData>({
-        resolver: zodResolver(betSchema),
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+        setError,
+        clearErrors,
+    } = useForm<BetFormData>({
         defaultValues: {
             price: String(auction?.current_price || 0),
         },
     })
 
     const onSubmit = (data: BetFormData) => {
-        // Преобразуем данные формы в данные для отправки
-        const submitData: BetSubmitData = {
-            price: Number(data.price),
+        // Валидация вручную
+        const trimmed = data.price.trim()
+
+        // Проверка на пустое поле
+        if (!trimmed) {
+            setError('price', {
+                type: 'manual',
+                message: 'Введите цену',
+            })
+            return
         }
-        placeBetMutation.mutate(submitData)
+
+        // Проверка, что введено число
+        const num = Number(trimmed)
+        if (isNaN(num)) {
+            setError('price', {
+                type: 'manual',
+                message: 'Введите число',
+            })
+            return
+        }
+
+        // Проверка, что число больше 0
+        if (num <= 0) {
+            setError('price', {
+                type: 'manual',
+                message: 'Цена должна быть больше 0',
+            })
+            return
+        }
+
+        // Очищаем ошибки и отправляем
+        clearErrors('price')
+        placeBetMutation.mutate({ price: num })
     }
 
     if (betsData?.hideHistory) {
         return (
             <div className="max-w-4xl mx-auto">
-                <Link to="/auctions/$auctionUuid" params={{auctionUuid}} className="text-blue-600 hover:underline mb-4 inline-block">
+                <Link to="/auctions/$auctionUuid" params={{ auctionUuid }} className="text-blue-600 hover:underline mb-4 inline-block">
                     ← Назад к аукциону
                 </Link>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
@@ -120,7 +138,7 @@ export function AuctionBetsPage() {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <Link to="/auctions/$auctionUuid" params={{auctionUuid}} className="text-blue-600 hover:underline mb-4 inline-block">
+            <Link to="/auctions/$auctionUuid" params={{ auctionUuid }} className="text-blue-600 hover:underline mb-4 inline-block">
                 ← Назад к аукциону
             </Link>
 
@@ -143,7 +161,8 @@ export function AuctionBetsPage() {
                                     Цена (₽)
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     {...register('price')}
                                     className={`w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.price ? 'border-red-500' : 'border-gray-300'
                                         }`}
