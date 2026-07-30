@@ -5,13 +5,8 @@
     <meta charset="utf-8" />
     <title>Грузовые аукционы</title>
     <script>
-        (function () {
-            var path = window.location.pathname;
-            var search = window.location.search;
-            // Убираем /test-smartLogistic из пути, если он там есть
-            var cleanPath = path.replace('/test-smartLogistic', '');
-            window.location.href = '/test-smartLogistic/index.html' + cleanPath + search;
-        })();
+        // Просто перенаправляем на index.html
+        window.location.href = '/test-smartLogistic/index.html';
     </script>
 </head>
 
